@@ -1,0 +1,141 @@
+---
+title: "BELLABEAT CASE STUDY"
+author: "Nicholas Newdorf"
+date: "2022-09-24"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo=FALSE, message=FALSE}
+install.packages("tidyverse")
+library(tidyverse)
+setwd("./Data")
+
+daily_activity <- read_csv("dailyActivity_merged.csv")
+daily_activity_filtered <- daily_activity %>%
+  filter(!(TotalSteps == 0 & SedentaryMinutes == 1440))
+
+sleep_day <- read_csv("sleepDay_merged.csv")
+weight_log_info <- read_csv("weightLogInfo_merged.csv")
+heartrate_seconds <- read_csv("heartrate_seconds_merged.csv")
+minute_mets_narrow <- read_csv("minuteMETsNarrow_merged.csv")
+```
+## THE TASK
+Determine suggestions for Bellabeat marketing by analyzing current trends in other smart trackers.
+
+* What current Bellabeat offerings match user trends?
+* Are there deficiencies in the current line up?
+
+## THE DATA
+A data set was sourced over the course of a month from 33 Fitbit users
+
+### Data Limitations
+* Only 33 participants in the study
+* Bellabeat caters to a female audience, the gender of Fitbit users is unknown
+* There is variance in the Fitbit types leading to subsets of participants for some metrics
+
+### Data Cleaning Process
+72 rows with 0 steps and 1440 sedentary minutes were removed under the assumption that this indicated days the device was not worn
+
+## THE ANALYSIS
+
+### Time Spent Measuring Throughout The Day
+Not all devices are used for a full 24 hour day.
+Some participants never hit a full day while others did so consistently.
+Participants seem to congregate at either one extreme or another with few in between.
+
+```{r, echo=FALSE}
+num_full_days <- daily_activity_filtered %>% 
+  rowwise() %>%
+  mutate(TotalMinute = sum(c(VeryActiveMinutes,FairlyActiveMinutes,LightlyActiveMinutes,SedentaryMinutes))) %>% 
+  group_by(Id) %>% summarise(Count = sum(TotalMinute == 1440))
+
+ggplot(num_full_days, aes(x=Count)) + 
+  geom_bar() + 
+  labs(title="Number of Full 24 Hour Days Recorded by Users", x="Number of Full Days", y="Number of Users")
+```
+
+### Types of Activities
+Activities are measured in four groups: Sedentary, Lightly Active, Fairly Active, and Very Active.
+Sedentary activity is by far the most measured activity.
+
+```{r, echo=FALSE}
+longer <- daily_activity_filtered %>%
+  pivot_longer(VeryActiveMinutes:SedentaryMinutes, names_to = "ActivityType", values_to = "Minutes")
+longer_summed <- longer %>%
+  group_by(ActivityType) %>%
+  summarize(Minutes = sum(Minutes))
+longer_summed <- longer_summed %>% 
+  mutate(Percentage = Minutes/sum(Minutes))
+longer_summed <- longer_summed %>%
+  mutate(PercentageLabel = scales::percent(Percentage,1))
+longer_summed$ActivityType <- factor(longer_summed$ActivityType, levels=c("SedentaryMinutes", "LightlyActiveMinutes", "FairlyActiveMinutes", "VeryActiveMinutes"))
+
+
+ggplot(longer_summed, aes(x="", y=Percentage, fill=ActivityType)) + 
+  geom_bar(stat="identity", width=1) + 
+  coord_polar("y",start=0) + 
+  theme_void() + 
+  scale_fill_grey() + 
+  geom_text(aes(label = ifelse(Percentage >= 0.1, PercentageLabel,"")),
+            position = position_stack(vjust = 0.5),
+            color="white") +
+  labs(title="Activity Percentages")
+```
+
+### Types of Metrics
+There are multiple metrics that can be tracked by FitBits. Some are more tracked than others.
+
+```{r, echo=FALSE}
+NumUsers <- c(
+n_distinct(daily_activity_filtered$Id),
+n_distinct(daily_activity_filtered$Id),
+n_distinct(daily_activity_filtered$Id),
+n_distinct(sleep_day$Id),
+n_distinct(weight_log_info$Id),
+n_distinct(heartrate_seconds$Id),
+n_distinct(minute_mets_narrow$Id))
+
+Metric <- c(
+  "Steps",
+  "Intensities",
+  "Calories",
+  "Sleep",
+  "Weight",
+  "HeartRate",
+  "MET"
+)
+
+user_of_metrics <- data.frame(Metric, NumUsers)
+
+ggplot(user_of_metrics, aes(x=reorder(Metric, NumUsers), y=NumUsers)) +
+  geom_col() +
+  labs(title = "Number Of Distinct Users For A Given Metric", x="Metric", y="Number of Users", caption = "Note: Weight is tracked either through manual entry or a connected scale")
+```
+
+## CONCLUSION
+
+### Key Findings
+* The uses of current smart trackers vary:
+  * Most of the time users are sedentary with small bursts of higher intensity activity.
+  * Sleep tracking and activity tracking are widely used while fewer people track heart-rate and weight.
+* Metrics that require manual input (like weight) appear to be less widely used than those automatically tracked.
+
+### Recomendation
+Out of Bellabeat's current lineup, the Leaf most closely resembles the data tracked in this data set. The Ivy includes extra features that some might use such as heart-rate tracking, but that accounts for less than half the participants of the study. For this purpose, it is my recommendation that we focus marketing on the Leaf.
+
+### Future Analysis Opportunities
+This study focused on a small set of Fitbit users and had many data limitations. Finding bigger data sets that more closely resemble Bellabeat's clientele would provide a better picture of the smart tracker landscape.
+
+## APENDIX
+Dataset taken from:
+https://www.kaggle.com/datasets/arashnic/fitbit/
+
+Data dictionary from:
+https://www.fitabase.com/media/1930/fitabasedatadictionary102320.pdf
+
+Differences between Leaf and Ivy:
+https://support.bellabeat.com/hc/en-us/articles/360020587680-What-is-the-difference-between-Ivy-and-the-Leaf-
