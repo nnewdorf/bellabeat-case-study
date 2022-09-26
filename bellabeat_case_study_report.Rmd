@@ -87,7 +87,7 @@ ggplot(longer_summed, aes(x="", y=Percentage, fill=ActivityType)) +
 ```
 
 ### Types of Metrics
-There are multiple metrics that can be tracked by FitBits. Some are more tracked than others.
+There are multiple metrics that can be tracked by FitBits, some are more tracked than others.
 
 ```{r, echo=FALSE}
 NumUsers <- c(
@@ -130,7 +130,7 @@ Out of Bellabeat's current lineup, the Leaf most closely resembles the data trac
 ### Future Analysis Opportunities
 This study focused on a small set of Fitbit users and had many data limitations. Finding bigger data sets that more closely resemble Bellabeat's clientele would provide a better picture of the smart tracker landscape.
 
-## APENDIX
+## APPENDIX
 Dataset taken from:
 https://www.kaggle.com/datasets/arashnic/fitbit/
 
